@@ -1,0 +1,2 @@
+﻿embedded_python_source=C:\Users\46289\scoop\apps\python313\current
+prepared_at=2026-05-16 14:13:32

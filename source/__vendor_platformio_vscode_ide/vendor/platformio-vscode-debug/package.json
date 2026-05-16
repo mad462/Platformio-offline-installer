@@ -1,0 +1,7 @@
+{
+  "name": "platformio-vscode-debug",
+  "version": "1.4.1",
+  "description": "Local prebuilt PlatformIO debugger dependency for offline packaging",
+  "main": "dist/extension.js",
+  "license": "Apache-2.0"
+}
