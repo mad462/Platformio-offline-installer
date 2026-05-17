@@ -11,6 +11,8 @@ datas = [
     (str(project_root / "resources" / "vsix"), "r/vx"),
     (str(project_root / "resources" / "patch"), "r/pt"),
     (str(project_root / "resources" / "vscode"), "r/vc"),
+    (str(project_root / "resources" / "tools"), "r/tl"),
+    (str(project_root / "resources" / "sdk"), "r/sdk"),
 ]
 
 a = Analysis(

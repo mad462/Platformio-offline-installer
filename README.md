@@ -1,12 +1,13 @@
 # PlatformIO Offline Installer
 
-这是一个独立子项目，用于生成和分发 PlatformIO 的离线安装器。
+这是一个独立子项目，用于生成和分发 PlatformIO 的离线安装器，并内置 SDK 管理入口。
 
 目标：
 
 - 在没有外网的 Windows 机器上安装 PlatformIO 基础环境
 - 安装离线 VS Code 扩展
 - 写入离线运行所需配置
+- 提供 SDK 的导入、打包、清理管理入口
 - 尽量降低用户操作复杂度
 
 ## 当前使用版本
@@ -18,6 +19,9 @@
 
 - `source/launcher`
   安装器 GUI 源码与 PyInstaller spec
+
+- `source/launcher/sdk_manager_window.py`
+  统一的安装器 + SDK 管理窗口实现
 
 - `resources/vscode`
   离线 VS Code 安装包
@@ -31,8 +35,20 @@
 - `resources/pio-data`
   预置 `.platformio` 数据
 
+- `resources/tools`
+  SDK 管理所需的 `7z.exe` / `7z.dll`
+
+- `resources/sdk`
+  默认存放离线 SDK 包
+
 - `build_installer.ps1`
   构建目录版安装器的脚本
+
+- `build`
+  PyInstaller 中间产物
+
+- `dist`
+  最终发布产物
 
 ## 当前推荐构建方式
 
@@ -48,10 +64,12 @@
 
 `dist/PlatformIO_Offline_Installer/PlatformIO_Offline_Installer.exe`
 
-## 说明
+## 当前界面行为
 
-这个项目只负责“PlatformIO 离线安装器”本身。
-
-SDK 的导入、打包、清理等逻辑属于另一个独立子项目：
-
-- `../offline-sdk-manager`
+- 程序启动后不再自动执行安装
+- 主界面是一个统一窗口，使用标签页切换：
+  - `安装 PIO`
+  - `安装 SDK`
+  - `打包 SDK`
+  - `清理 SDK`
+- 打包 SDK 时会锁定当前选择，避免打包过程中误改列表
