@@ -25,6 +25,11 @@ try {
 
     Write-Host "Done. Use this installer:"
     Write-Host $innerExe
+    $zipPath = Join-Path $distRoot "PlatformIO_Offline_Installer.zip"
+    if (Test-Path -LiteralPath $zipPath -PathType Leaf) {
+        Write-Host "Release ZIP:"
+        Write-Host $zipPath
+    }
 }
 finally {
     Pop-Location

@@ -30,6 +30,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
+import yaml
+
 
 def show_startup_error(message: str) -> None:
     try:
@@ -88,13 +90,13 @@ PACKAGES_DIR = PIO_ROOT / "packages"
 PENV_PIO = PIO_ROOT / "penv" / "Scripts" / "pio.exe"
 MANIFEST_FILE = "sdk-manifest.json"
 ERROR_LOG = APP_BASE_DIR / "pio_gui_error.log"
-COMMON_PACKAGE_DIR_NAMES = [
-    "tool-scons",
-    "tool-cmake",
-    "tool-ninja",
-    "tool-mconf",
-    "tool-idf",
-]
+DEPENDENCY_MANIFEST_PATH = BUNDLE_ROOT / "dependencies" / "platformio-deps.yml"
+DEPENDENCY_LEVEL_LABELS = {
+    "required": "必需",
+    "warning": "建议",
+    "optional": "可选",
+    "ignored": "忽略",
+}
 LOW_PRIORITY_OPTIONAL_PACKAGE_NAMES = {
     "framework-arduino-c2-skeleton-lib",
     "tool-dfuutil-arduino",
@@ -135,6 +137,165 @@ class ProjectEnvConfig:
 class StepInfo:
     title: str
     weight: int
+
+
+_dependency_manifest_cache: Optional[dict] = None
+
+
+def normalize_dependency_level(level: str) -> str:
+    text = (level or "").strip().lower()
+    if text in {"required", "must", "mandatory"}:
+        return "required"
+    if text in {"warning", "recommended", "suggested"}:
+        return "warning"
+    if text in {"optional", "info", "nice-to-have"}:
+        return "optional"
+    if text in {"ignored", "skip", "hidden"}:
+        return "ignored"
+    return "optional"
+
+
+def load_dependency_manifest() -> dict:
+    global _dependency_manifest_cache
+    if _dependency_manifest_cache is not None:
+        return _dependency_manifest_cache
+    if not DEPENDENCY_MANIFEST_PATH.exists():
+        _dependency_manifest_cache = {}
+        return _dependency_manifest_cache
+    try:
+        data = yaml.safe_load(DEPENDENCY_MANIFEST_PATH.read_text(encoding="utf-8")) or {}
+    except Exception as exc:
+        raise RuntimeError(f"读取依赖清单失败：{DEPENDENCY_MANIFEST_PATH} ({exc})")
+    if not isinstance(data, dict):
+        raise RuntimeError(f"依赖清单格式错误：{DEPENDENCY_MANIFEST_PATH}")
+    _dependency_manifest_cache = data
+    return _dependency_manifest_cache
+
+
+def get_package_catalog() -> dict:
+    manifest = load_dependency_manifest()
+    catalog = manifest.get("package_catalog") or {}
+    return catalog if isinstance(catalog, dict) else {}
+
+
+def get_package_purpose(package_name: str) -> str:
+    catalog = get_package_catalog()
+    package_info = catalog.get(package_name)
+    if isinstance(package_info, dict):
+        return str(package_info.get("purpose", "")).strip()
+    return ""
+
+
+def get_platform_dependency_versions(base_name: str) -> List[dict]:
+    manifest = load_dependency_manifest()
+    platforms = manifest.get("platforms") or {}
+    if not isinstance(platforms, dict):
+        return []
+    platform_info = platforms.get(base_name) or {}
+    if not isinstance(platform_info, dict):
+        return []
+    versions = platform_info.get("versions") or []
+    if not isinstance(versions, list):
+        return []
+    return [item for item in versions if isinstance(item, dict)]
+
+
+def match_dependency_version_entry(base_name: str, platform_dir_name: str, version_name: str, platform_version: str) -> Optional[dict]:
+    candidates = get_platform_dependency_versions(base_name)
+    if not candidates:
+        return None
+
+    norm_platform_version = normalize_numeric_version_text(platform_version)
+    norm_version_name = normalize_numeric_version_text(version_name)
+
+    def score(entry: dict) -> int:
+        value = 0
+        entry_dir_name = str(entry.get("platform_dir_name", "")).strip()
+        entry_version = str(entry.get("platform_version", "")).strip()
+        if entry_dir_name and entry_dir_name == platform_dir_name:
+            value += 8
+        if entry_dir_name and entry_dir_name == version_name:
+            value += 4
+        if entry_version and entry_version == platform_version:
+            value += 6
+        if norm_platform_version and normalize_numeric_version_text(entry_version) == norm_platform_version:
+            value += 5
+        if norm_version_name and normalize_numeric_version_text(entry_version) == norm_version_name:
+            value += 3
+        return value
+
+    scored = sorted(((score(entry), entry) for entry in candidates), key=lambda item: item[0], reverse=True)
+    if scored and scored[0][0] > 0:
+        return scored[0][1]
+    return None
+
+
+def iter_dependency_items(entry: Optional[dict]) -> List[dict]:
+    if not isinstance(entry, dict):
+        return []
+    dependencies = entry.get("dependencies") or []
+    if not isinstance(dependencies, list):
+        return []
+    results: List[dict] = []
+    for item in dependencies:
+        if isinstance(item, str):
+            name = item.strip()
+            if name:
+                results.append({"name": name, "level": "optional", "frameworks": []})
+            continue
+        if isinstance(item, dict):
+            name = str(item.get("name", "")).strip()
+            if not name:
+                continue
+            item_frameworks = item.get("frameworks") or []
+            normalized_frameworks: List[str] = []
+            if isinstance(item_frameworks, list):
+                for framework_name in item_frameworks:
+                    framework_text = str(framework_name).strip().lower()
+                    if framework_text and framework_text not in normalized_frameworks:
+                        normalized_frameworks.append(framework_text)
+            results.append(
+                {
+                    "name": name,
+                    "level": normalize_dependency_level(str(item.get("level", "optional"))),
+                    "frameworks": normalized_frameworks,
+                }
+            )
+    return results
+
+
+def get_dependency_level_map(entry: Optional[dict], package_map: dict, frameworks: Optional[List[str]] = None) -> Dict[str, str]:
+    level_map: Dict[str, str] = {}
+    active_frameworks = [item.lower() for item in (frameworks or []) if item.strip()]
+    for item in iter_dependency_items(entry):
+        item_frameworks = item.get("frameworks") or []
+        if item_frameworks and not any(name in active_frameworks for name in item_frameworks):
+            continue
+        level_map[item["name"]] = item["level"]
+
+    for package_name, package_info in package_map.items():
+        if package_name in level_map:
+            continue
+        optional = bool((package_info or {}).get("optional", False))
+        if optional and package_name in LOW_PRIORITY_OPTIONAL_PACKAGE_NAMES:
+            level_map[package_name] = "ignored"
+        elif optional:
+            level_map[package_name] = "optional"
+        else:
+            level_map[package_name] = "required"
+    return level_map
+
+
+def format_dependency_label(package_name: str, level: str) -> str:
+    purpose = get_package_purpose(package_name)
+    level_label = DEPENDENCY_LEVEL_LABELS.get(level, "")
+    if purpose and level_label:
+        return f"{package_name}（{level_label}：{purpose}）"
+    if purpose:
+        return f"{package_name}（{purpose}）"
+    if level_label:
+        return f"{package_name}（{level_label}）"
+    return package_name
 
 
 def split_csv_like(value: str) -> List[str]:
@@ -371,32 +532,6 @@ def match_entry_for_platform_spec(entries: List[PlatformEntry], platform_spec: s
     return None
 
 
-def collect_required_package_names(platform_manifest: dict, frameworks: Optional[List[str]]) -> Set[str]:
-    package_map = platform_manifest.get("packages") or {}
-    required: Set[str] = set()
-
-    frameworks = [item.lower() for item in (frameworks or []) if item.strip()]
-    framework_map = platform_manifest.get("frameworks") or {}
-    for framework_name in frameworks:
-        framework_info = framework_map.get(framework_name)
-        if isinstance(framework_info, dict):
-            package_name = str(framework_info.get("package", "")).strip()
-            if package_name:
-                required.add(package_name)
-
-    for package_name, package_info in package_map.items():
-        optional = bool((package_info or {}).get("optional", False))
-        if not optional:
-            required.add(package_name)
-        if package_name.startswith("toolchain-"):
-            required.add(package_name)
-
-    for fixed_name in ("tool-esptoolpy", "tool-scons", "tool-cmake", "tool-ninja", "tool-mconf", "tool-idf"):
-        if fixed_name in package_map:
-            required.add(fixed_name)
-    return required
-
-
 def check_entry_dependencies(entry: PlatformEntry, frameworks: Optional[List[str]] = None) -> Dict[str, List[str]]:
     result: Dict[str, List[str]] = {
         "missing_required": [],
@@ -416,12 +551,17 @@ def check_entry_dependencies(entry: PlatformEntry, frameworks: Optional[List[str
         return result
 
     package_map = platform_manifest.get("packages") or {}
-    required_package_names = collect_required_package_names(platform_manifest, frameworks)
+    dependency_entry = match_dependency_version_entry(
+        entry.base_name,
+        entry.platform_dir_name,
+        entry.version_name,
+        entry.platform_version,
+    )
+    level_map = get_dependency_level_map(dependency_entry, package_map, frameworks)
 
     for package_name, package_info in package_map.items():
-        optional = bool((package_info or {}).get("optional", False))
-        is_required = package_name in required_package_names
-        if optional and not is_required and package_name in LOW_PRIORITY_OPTIONAL_PACKAGE_NAMES:
+        level = level_map.get(package_name, "optional")
+        if level == "ignored":
             continue
 
         specs = []
@@ -437,8 +577,8 @@ def check_entry_dependencies(entry: PlatformEntry, frameworks: Optional[List[str
 
         candidates = resolve_package_dir_names(package_name)
         if not candidates:
-            key = "missing_required" if is_required else "missing_optional"
-            result[key].append(f"{package_name} ({' | '.join(specs)})")
+            key = "missing_required" if level == "required" else "missing_optional"
+            result[key].append(f"{format_dependency_label(package_name, level)} ({' | '.join(specs)})")
             continue
 
         matched = False
@@ -459,8 +599,8 @@ def check_entry_dependencies(entry: PlatformEntry, frameworks: Optional[List[str
                     break
 
         if not matched:
-            key = "mismatch_required" if is_required else "mismatch_optional"
-            result[key].append(f"{package_name} ({' | '.join(specs)})")
+            key = "mismatch_required" if level == "required" else "mismatch_optional"
+            result[key].append(f"{format_dependency_label(package_name, level)} ({' | '.join(specs)})")
 
     return result
 
@@ -685,15 +825,6 @@ def resolve_package_dir_names(pkg_name: str) -> List[str]:
     return results
 
 
-def resolve_common_package_dir_names() -> List[str]:
-    results: List[str] = []
-    for pkg_name in COMMON_PACKAGE_DIR_NAMES:
-        for pkg_dir_name in resolve_package_dir_names(pkg_name):
-            if pkg_dir_name not in results:
-                results.append(pkg_dir_name)
-    return results
-
-
 def choose_platform_entry(existing: PlatformEntry, candidate: PlatformEntry) -> PlatformEntry:
     try:
         existing_mtime = existing.platform_dir.stat().st_mtime
@@ -712,7 +843,6 @@ def collect_platform_entries() -> List[PlatformEntry]:
     entries: List[PlatformEntry] = []
     if not PLATFORMS_DIR.exists():
         return entries
-    common_package_dirs = resolve_common_package_dir_names()
 
     for platform_dir in sorted(PLATFORMS_DIR.iterdir(), key=lambda p: p.name.lower()):
         if not platform_dir.is_dir():
@@ -727,15 +857,15 @@ def collect_platform_entries() -> List[PlatformEntry]:
 
         base_name = manifest.get("name") or platform_dir.name.split("@", 1)[0]
         version_name = normalize_version_name(platform_dir.name, manifest.get("version", ""))
-        package_names = sorted((manifest.get("packages") or {}).keys(), key=str.lower)
+        dependency_entry = match_dependency_version_entry(base_name, platform_dir.name, version_name, manifest.get("version", ""))
+        package_names = set((manifest.get("packages") or {}).keys())
+        package_names.update(item["name"] for item in iter_dependency_items(dependency_entry))
+        package_names = sorted(package_names, key=str.lower)
         package_dirs: List[str] = []
         for pkg_name in package_names:
             for pkg_dir_name in resolve_package_dir_names(pkg_name):
                 if pkg_dir_name not in package_dirs:
                     package_dirs.append(pkg_dir_name)
-        for pkg_dir_name in common_package_dirs:
-            if pkg_dir_name not in package_dirs:
-                package_dirs.append(pkg_dir_name)
 
         size_mb = get_dir_size_mb(platform_dir)
         for pkg_dir_name in package_dirs:
@@ -771,7 +901,6 @@ def collect_platform_entries_with_progress(progress_callback=None) -> List[Platf
         if progress_callback:
             progress_callback(0, 0, "未找到 .platformio/platforms")
         return entries
-    common_package_dirs = resolve_common_package_dir_names()
 
     platform_dirs = [p for p in sorted(PLATFORMS_DIR.iterdir(), key=lambda p: p.name.lower()) if p.is_dir()]
     total = len(platform_dirs)
@@ -796,7 +925,10 @@ def collect_platform_entries_with_progress(progress_callback=None) -> List[Platf
 
         base_name = manifest.get("name") or platform_dir.name.split("@", 1)[0]
         version_name = normalize_version_name(platform_dir.name, manifest.get("version", ""))
-        package_names = sorted((manifest.get("packages") or {}).keys(), key=str.lower)
+        dependency_entry = match_dependency_version_entry(base_name, platform_dir.name, version_name, manifest.get("version", ""))
+        package_names = set((manifest.get("packages") or {}).keys())
+        package_names.update(item["name"] for item in iter_dependency_items(dependency_entry))
+        package_names = sorted(package_names, key=str.lower)
 
         if progress_callback:
             progress_callback(index - 1, total, f"正在解析 {base_name}@{version_name} 的依赖列表")
@@ -806,9 +938,6 @@ def collect_platform_entries_with_progress(progress_callback=None) -> List[Platf
             for pkg_dir_name in resolve_package_dir_names(pkg_name):
                 if pkg_dir_name not in package_dirs:
                     package_dirs.append(pkg_dir_name)
-        for pkg_dir_name in common_package_dirs:
-            if pkg_dir_name not in package_dirs:
-                package_dirs.append(pkg_dir_name)
 
         if progress_callback:
             progress_callback(index - 1, total, f"正在统计 {base_name}@{version_name} 的大小")

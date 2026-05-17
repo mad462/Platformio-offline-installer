@@ -35,11 +35,14 @@
 - `resources/pio-data`
   预置 `.platformio` 数据
 
+- `resources/dependencies/platformio-deps.yml`
+  平台 / 工具链 / 框架依赖表，`level` 支持 `required` / `warning` / `optional` / `ignored`
+
 - `resources/tools`
   SDK 管理所需的 `7z.exe` / `7z.dll`
 
 - `resources/sdk`
-  默认存放离线 SDK 包
+  默认存放离线 SDK 包（包含上传器等公共依赖，如 `tool-esptoolpy`）
 
 - `build_installer.ps1`
   构建目录版安装器的脚本
@@ -64,6 +67,21 @@
 
 `dist/PlatformIO_Offline_Installer/PlatformIO_Offline_Installer.exe`
 
+如果要直接给用户下载使用，当前推荐发布包是：
+
+`dist/PlatformIO_Offline_Installer.zip`
+
+用户下载后只需要解压，再运行目录里的：
+
+`PlatformIO_Offline_Installer/PlatformIO_Offline_Installer.exe`
+
+当前这个 ZIP 发布包已经内置：
+
+- `espressif32-54.03.20.sdk.7z`
+- `espressif32-7.0.0.sdk.7z`
+
+因此用户不需要先自己打包 SDK，就可以直接安装 PIO 并导入这两个常用 SDK。
+
 ## 当前界面行为
 
 - 程序启动后不再自动执行安装
@@ -73,3 +91,10 @@
   - `打包 SDK`
   - `清理 SDK`
 - 打包 SDK 时会锁定当前选择，避免打包过程中误改列表
+
+## 当前推荐发布说明
+
+- 暂时只发布 Windows `exe` 目录版
+- GitHub Release 建议上传 `PlatformIO_Offline_Installer.zip`
+- 不建议用户直接下载源码后自己构建
+- 安装器内置 SDK 时，应优先把常用版本放入 `resources/sdk`

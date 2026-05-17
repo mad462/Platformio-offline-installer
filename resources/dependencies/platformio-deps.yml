@@ -1,0 +1,311 @@
+schema_version: 1
+
+package_catalog:
+  framework-arduinoespressif32:
+    purpose: Arduino 框架本体，提供 core、variants 和常用库。
+  framework-arduinoespressif32-libs:
+    purpose: Arduino 核心补充库与二进制依赖。
+  framework-espidf:
+    purpose: ESP-IDF 框架本体。
+  framework-arduinoespressif8266:
+    purpose: ESP8266 Arduino 框架本体。
+  framework-esp8266-rtos-sdk:
+    purpose: ESP8266 RTOS SDK 框架。
+  framework-esp8266-nonos-sdk:
+    purpose: ESP8266 NONOS SDK 框架。
+  framework-arduino-mbcwb:
+    purpose: Arduino MBCWB 框架扩展。
+  tool-esptoolpy:
+    purpose: 串口烧录与上传工具，`upload` 阶段会用到。
+  tool-esptool:
+    purpose: 旧版 ESP 烧录工具，ESP8266 平台会用到。
+  tool-esp_install:
+    purpose: PIOArduino 平台安装辅助工具。
+  tool-scons:
+    purpose: SCons 构建系统，PlatformIO Core 的基础构建工具。
+  tool-cmake:
+    purpose: CMake 构建工具，ESP-IDF 构建会用到。
+  tool-ninja:
+    purpose: Ninja 构建器，ESP-IDF 构建会用到。
+  tool-mconf:
+    purpose: menuconfig / Kconfig 菜单工具。
+  tool-idf:
+    purpose: ESP-IDF 辅助脚本与工具集合。
+  tool-openocd-esp32:
+    purpose: ESP32 系列 JTAG/OpenOCD 调试工具。
+  tool-dfuutil-arduino:
+    purpose: USB DFU 烧录工具，使用 DFU 下载时需要。
+  tool-mkfatfs:
+    purpose: FATFS 镜像生成工具。
+  tool-mklittlefs:
+    purpose: LittleFS 镜像生成工具。
+  tool-mkspiffs:
+    purpose: SPIFFS 镜像生成工具。
+  tool-cppcheck:
+    purpose: 静态分析工具。
+  tool-clangtidy:
+    purpose: 静态分析工具。
+  tool-pvs-studio:
+    purpose: 商业静态分析工具。
+  tool-xtensa-esp-elf-gdb:
+    purpose: Xtensa 架构调试器。
+  tool-riscv32-esp-elf-gdb:
+    purpose: RISC-V 架构调试器。
+  toolchain-xtensa-esp-elf:
+    purpose: Xtensa 新版编译器工具链，ESP32-S2/S3 等芯片常用。
+  toolchain-xtensa-esp32:
+    purpose: 旧版 Xtensa 编译器工具链，6.x / 7.x 平台常见。
+  toolchain-xtensa-esp32s2:
+    purpose: ESP32-S2 专用旧版 Xtensa 工具链。
+  toolchain-xtensa-esp32s3:
+    purpose: ESP32-S3 专用旧版 Xtensa 工具链。
+  toolchain-xtensa:
+    purpose: ESP8266 旧版 Xtensa 工具链。
+  toolchain-riscv32-esp:
+    purpose: RISC-V 编译器工具链，C3/C6/H2/P4 等芯片常用。
+  toolchain-esp32ulp:
+    purpose: ULP 协处理器工具链。
+  tool-esp-rom-elfs:
+    purpose: ESP ROM 符号文件，调试/符号化时有用。
+  tool-mbctool:
+    purpose: ESP32 MBCWB 相关辅助工具。
+  contrib-piohome:
+    purpose: PlatformIO Home 前端资源。
+
+platforms:
+  espressif32:
+    versions:
+      - platform_dir_name: platform-espressif32-54.03.20-esp
+        platform_version: 54.03.20
+        dependencies:
+          - name: tool-esptoolpy
+            level: required
+          - name: toolchain-xtensa-esp-elf
+            level: warning
+          - name: toolchain-riscv32-esp
+            level: warning
+          - name: toolchain-esp32ulp
+            level: warning
+          - name: tool-xtensa-esp-elf-gdb
+            level: warning
+          - name: tool-riscv32-esp-elf-gdb
+            level: warning
+          - name: tool-scons
+            level: warning
+          - name: tool-cmake
+            level: warning
+          - name: tool-ninja
+            level: warning
+          - name: tool-mconf
+            level: warning
+          - name: tool-idf
+            level: warning
+          - name: tool-openocd-esp32
+            level: warning
+          - name: tool-dfuutil-arduino
+            level: optional
+            frameworks: [arduino]
+          - name: tool-mkfatfs
+            level: optional
+          - name: tool-mklittlefs
+            level: optional
+          - name: tool-mkspiffs
+            level: optional
+          - name: tool-cppcheck
+            level: ignored
+          - name: tool-clangtidy
+            level: ignored
+          - name: tool-pvs-studio
+            level: ignored
+          - name: framework-arduinoespressif32
+            level: required
+            frameworks: [arduino]
+          - name: framework-arduinoespressif32-libs
+            level: required
+            frameworks: [arduino]
+          - name: framework-espidf
+            level: required
+            frameworks: [espidf]
+
+      - platform_dir_name: espressif32@6.5.0
+        platform_version: 6.5.0
+        dependencies:
+          - name: toolchain-xtensa-esp32
+            level: required
+          - name: tool-esptoolpy
+            level: required
+          - name: toolchain-xtensa-esp32s2
+            level: warning
+          - name: toolchain-xtensa-esp32s3
+            level: warning
+          - name: toolchain-riscv32-esp
+            level: warning
+          - name: toolchain-esp32ulp
+            level: warning
+          - name: tool-xtensa-esp-elf-gdb
+            level: warning
+          - name: tool-riscv32-esp-elf-gdb
+            level: warning
+          - name: tool-openocd-esp32
+            level: warning
+          - name: tool-scons
+            level: warning
+          - name: tool-cmake
+            level: warning
+          - name: tool-ninja
+            level: warning
+          - name: tool-mconf
+            level: warning
+          - name: tool-idf
+            level: warning
+          - name: tool-dfuutil-arduino
+            level: optional
+            frameworks: [arduino]
+          - name: tool-mkspiffs
+            level: optional
+          - name: tool-mklittlefs
+            level: optional
+          - name: tool-mkfatfs
+            level: optional
+          - name: tool-mbctool
+            level: ignored
+          - name: framework-arduinoespressif32
+            level: required
+            frameworks: [arduino]
+          - name: framework-espidf
+            level: required
+            frameworks: [espidf]
+
+      - platform_dir_name: espressif32@7.0.0
+        platform_version: 7.0.0
+        dependencies:
+          - name: toolchain-xtensa-esp32
+            level: required
+          - name: tool-esptoolpy
+            level: required
+          - name: toolchain-xtensa-esp-elf
+            level: warning
+          - name: toolchain-xtensa-esp32s2
+            level: warning
+          - name: toolchain-xtensa-esp32s3
+            level: warning
+          - name: toolchain-riscv32-esp
+            level: warning
+          - name: toolchain-esp32ulp
+            level: warning
+          - name: tool-xtensa-esp-elf-gdb
+            level: warning
+          - name: tool-riscv32-esp-elf-gdb
+            level: warning
+          - name: tool-openocd-esp32
+            level: warning
+          - name: tool-esp-rom-elfs
+            level: warning
+          - name: tool-scons
+            level: warning
+          - name: tool-cmake
+            level: warning
+          - name: tool-ninja
+            level: warning
+          - name: tool-mconf
+            level: warning
+          - name: tool-idf
+            level: warning
+          - name: tool-dfuutil-arduino
+            level: optional
+            frameworks: [arduino]
+          - name: tool-mkspiffs
+            level: optional
+          - name: tool-mklittlefs
+            level: optional
+          - name: tool-mkfatfs
+            level: optional
+          - name: contrib-piohome
+            level: ignored
+          - name: framework-arduinoespressif32
+            level: required
+            frameworks: [arduino]
+          - name: framework-espidf
+            level: required
+            frameworks: [espidf]
+
+      - platform_dir_name: espressif32
+        platform_version: 55.03.37
+        dependencies:
+          - name: tool-esp_install
+            level: required
+          - name: tool-esptoolpy
+            level: warning
+          - name: toolchain-xtensa-esp-elf
+            level: warning
+          - name: toolchain-riscv32-esp
+            level: warning
+          - name: toolchain-esp32ulp
+            level: warning
+          - name: tool-xtensa-esp-elf-gdb
+            level: warning
+          - name: tool-riscv32-esp-elf-gdb
+            level: warning
+          - name: tool-openocd-esp32
+            level: warning
+          - name: tool-esp-rom-elfs
+            level: warning
+          - name: tool-scons
+            level: warning
+          - name: tool-cmake
+            level: warning
+          - name: tool-ninja
+            level: warning
+          - name: tool-mconf
+            level: warning
+          - name: tool-idf
+            level: warning
+          - name: tool-dfuutil-arduino
+            level: optional
+            frameworks: [arduino]
+          - name: tool-mkspiffs
+            level: optional
+          - name: tool-mklittlefs
+            level: optional
+          - name: tool-mkfatfs
+            level: optional
+          - name: tool-cppcheck
+            level: ignored
+          - name: tool-clangtidy
+            level: ignored
+          - name: tool-pvs-studio
+            level: ignored
+          - name: contrib-piohome
+            level: ignored
+          - name: framework-arduinoespressif32
+            level: required
+            frameworks: [arduino]
+          - name: framework-arduinoespressif32-libs
+            level: required
+            frameworks: [arduino]
+          - name: framework-espidf
+            level: required
+            frameworks: [espidf]
+
+  espressif8266:
+    versions:
+      - platform_dir_name: espressif8266
+        platform_version: 4.0.1
+        dependencies:
+          - name: toolchain-xtensa
+            level: required
+          - name: tool-esptool
+            level: required
+          - name: tool-esptoolpy
+            level: required
+          - name: framework-arduinoespressif8266
+            level: required
+            frameworks: [arduino]
+          - name: framework-esp8266-rtos-sdk
+            level: warning
+          - name: framework-esp8266-nonos-sdk
+            level: optional
+          - name: tool-mkspiffs
+            level: optional
+          - name: tool-mklittlefs
+            level: optional

@@ -8,6 +8,7 @@ launcher = project_root / "source" / "launcher" / "gui_installer.py"
 datas = [
     (str(project_root / "resources" / "runtime"), "r/rt"),
     (str(project_root / "resources" / "pio-data"), "r/p"),
+    (str(project_root / "resources" / "dependencies"), "r/dependencies"),
     (str(project_root / "resources" / "vsix"), "r/vx"),
     (str(project_root / "resources" / "patch"), "r/pt"),
     (str(project_root / "resources" / "vscode"), "r/vc"),
