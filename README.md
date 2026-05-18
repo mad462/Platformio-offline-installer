@@ -98,3 +98,8 @@
 - GitHub Release 建议上传 `PlatformIO_Offline_Installer.zip`
 - 不建议用户直接下载源码后自己构建
 - 安装器内置 SDK 时，应优先把常用版本放入 `resources/sdk`
+
+## 当前发布版本
+
+- 当前整理好的首个正式发布说明：`docs/releases/v1.0.0.md`
+- 推荐配套 tag：`v1.0.0`
