@@ -48,39 +48,48 @@
   构建目录版安装器的脚本
 
 - `build`
-  PyInstaller 中间产物
+  本地构建时生成的 PyInstaller 中间产物（默认不上传到仓库）
 
 - `dist`
-  最终发布产物
+  本地构建时生成的发布产物目录（默认不上传到仓库）
 
-## 当前推荐构建方式
+## 下载使用
 
-在本目录执行：
+如果你是直接使用现成安装包，而不是自己构建源码：
+
+- 请到 GitHub 的 `Releases` 页面下载 `PlatformIO_Offline_Installer.zip`
+- 下载后解压
+- 运行解压目录中的 `PlatformIO_Offline_Installer.exe`
+
+说明：
+
+- `PlatformIO_Offline_Installer.zip` 是 **Release 附件**
+- 它不在仓库源码目录里
+- 所以在 GitHub 仓库文件列表中，通常看不到 `dist/PlatformIO_Offline_Installer.zip`
+
+当前发布包内置：
+
+- `espressif32-54.03.20.sdk.7z`
+- `espressif32-7.0.0.sdk.7z`
+
+因此下载后可以直接使用，不需要先自己打包这两个 SDK。
+
+## 从源码构建
+
+如果你是项目维护者，想在本地重新构建发布包，请在项目目录执行：
 
 ```powershell
 .\build_installer.ps1
 ```
 
-## 当前推荐发布入口
+构建完成后，本地会生成：
 
-构建完成后，实际发给用户的是目录版安装器中的这个入口：
+- `dist/PlatformIO_Offline_Installer/PlatformIO_Offline_Installer.exe`
+- `dist/PlatformIO_Offline_Installer.zip`
 
-`dist/PlatformIO_Offline_Installer/PlatformIO_Offline_Installer.exe`
+其中推荐上传到 GitHub Release 的是：
 
-如果要直接给用户下载使用，当前推荐发布包是：
-
-`dist/PlatformIO_Offline_Installer.zip`
-
-用户下载后只需要解压，再运行目录里的：
-
-`PlatformIO_Offline_Installer/PlatformIO_Offline_Installer.exe`
-
-当前这个 ZIP 发布包已经内置：
-
-- `espressif32-54.03.20.sdk.7z`
-- `espressif32-7.0.0.sdk.7z`
-
-因此用户不需要先自己打包 SDK，就可以直接安装 PIO 并导入这两个常用 SDK。
+- `dist/PlatformIO_Offline_Installer.zip`
 
 ## 当前界面行为
 
@@ -94,12 +103,12 @@
 
 ## 当前推荐发布说明
 
-- 暂时只发布 Windows `exe` 目录版
-- GitHub Release 建议上传 `PlatformIO_Offline_Installer.zip`
-- 不建议用户直接下载源码后自己构建
+- 暂时只发布 Windows 包
+- 推荐把 `PlatformIO_Offline_Installer.zip` 作为 GitHub Release 附件上传
+- 不建议最终用户直接从源码仓库自行构建
 - 安装器内置 SDK 时，应优先把常用版本放入 `resources/sdk`
 
 ## 当前发布版本
 
-- 当前整理好的首个正式发布说明：`docs/releases/v1.0.0.md`
-- 推荐配套 tag：`v1.0.0`
+- 当前发布说明：`docs/releases/v1.0.0.md`
+- 当前推荐 tag：`v1.0.0`
